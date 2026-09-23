@@ -19,11 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1
+      - name: Set up pnpm workspace
+        uses: santi020k/quality/actions/setup-pnpm@eec1701b98bcc0b76d36af288ee78a0369cd84cc # v1
         with:
-          version: 11
-          runtime: node@24.19.0
-          cache: true
+          pnpm-version: 11
+          node-version: 24.19.0
 
       - name: Run Danger
         run: pnpm run danger ci

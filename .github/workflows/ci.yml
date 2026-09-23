@@ -26,11 +26,11 @@ jobs:
           clean: false
           fetch-depth: 0
 
-      - uses: pnpm/setup@5d160c5bc68a09337ad0d5654e237e03253b5879 # v1
+      - name: Set up pnpm workspace
+        uses: santi020k/quality/actions/setup-pnpm@eec1701b98bcc0b76d36af288ee78a0369cd84cc # v1
         with:
-          version: 11
-          runtime: node@24.19.0
-          cache: true
+          pnpm-version: 11
+          node-version: 24.19.0
 
       - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1
         with:
