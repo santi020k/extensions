@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://quality.santi020k.com/quality.schema.json
+version: 1
+output: pretty
+hooks:
+  commit-msg:
+    steps:
+      - name: Validate commit message with Commitprompt
+        command: pnpm
+        args: [exec, commitprompt, validate, --input]
+        pass_hook_args: true
+  pre-push:
+    steps:
+      - name: Validate registry tooling and declarations
+        command: pnpm
+        args: [run, check]

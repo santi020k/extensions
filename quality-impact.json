@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "global_inputs": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "tsconfig.json",
+    ".github/",
+    "scripts/",
+    "quality-impact.json",
+    ".quality-version",
+    "quality.yml"
+  ],
+  "ignored_inputs": ["README.md"],
+  "nodes": {
+    "tooling": {
+      "inputs": ["src/"],
+      "command": "pnpm",
+      "args": ["run", "check:tooling"]
+    },
+    "registry": {
+      "inputs": ["extensions/", "extensions.toml", ".gitmodules"],
+      "depends_on": ["tooling"],
+      "command": "pnpm",
+      "args": ["run", "check:registry"]
+    }
+  }
+}
