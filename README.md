@@ -37,7 +37,7 @@ Run `pnpm run check:tooling`, `pnpm run check:registry` and
 `node --test scripts/ci-scope.node-test.mjs` locally. With Quality 2 on PATH, run
 `node --test scripts/quality-impact.node-test.mjs` too. Reverting the fork workflow
 restores the previous behavior without changing registry entries or published
-artifacts. No Turbo or new package dependency is required.
+artifacts. No Turbo or new runtime dependency is required.
 
 ### Commit messages
 
