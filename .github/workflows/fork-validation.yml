@@ -1,0 +1,91 @@
+name: Fork validation
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fork-validation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  scope:
+    if: github.repository_owner == 'santi020k'
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.scope.outputs.mode }}
+      tooling: ${{ steps.scope.outputs.tooling }}
+      registry: ${{ steps.scope.outputs.registry }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: node --test scripts/ci-scope.node-test.mjs
+      - id: scope
+        run: node scripts/ci-scope.mjs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+  impact:
+    if: github.repository_owner == 'santi020k'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned Quality v2
+        run: |
+          curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/santi020k/quality/ff490e9efbd5fdfbdb1e6c404f1741d04c57f585/install.sh -o "$RUNNER_TEMP/install-quality.sh"
+          QUALITY_INSTALL_DIR="$RUNNER_TEMP/quality-bin" sh "$RUNNER_TEMP/install-quality.sh" santi020k/quality v2.0.0
+          echo "$RUNNER_TEMP/quality-bin" >> "$GITHUB_PATH"
+      - name: Verify policy and record shadow plan
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          node --test scripts/quality-impact.node-test.mjs
+          args=(--full)
+          if [[ "$GITHUB_EVENT_NAME" == pull_request && -n "$BASE" && "$BRANCH" != release/* && "$BRANCH" != changeset-release/* ]]; then
+            args=(--base "$BASE" --head HEAD --comparison merge-base)
+          fi
+          quality impact plan "${args[@]}" --format json >> "$GITHUB_STEP_SUMMARY"
+  tooling:
+    needs: scope
+    if: needs.scope.outputs.tooling == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: santi020k/quality/actions/setup-pnpm@ff490e9efbd5fdfbdb1e6c404f1741d04c57f585
+        with:
+          pnpm-version: 11
+          node-version: 24.19.0
+      - run: pnpm run check:tooling
+  registry:
+    needs: scope
+    if: needs.scope.outputs.registry == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: santi020k/quality/actions/setup-pnpm@ff490e9efbd5fdfbdb1e6c404f1741d04c57f585
+        with:
+          pnpm-version: 11
+          node-version: 24.19.0
+      - run: pnpm run check:registry
+      - name: Require canonical declaration order
+        run: |
+          pnpm run sort-extensions
+          git diff --exit-code -- extensions.toml .gitmodules
+  gate:
+    name: Fork required checks
+    if: always() && github.repository_owner == 'santi020k'
+    needs: [scope, impact, tooling, registry]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - run: node scripts/quality-gate.mjs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
